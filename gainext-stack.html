@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stack Gainext — Base de Conhecimento</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fa;color:#111;min-height:100vh}
+.hero{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;padding:48px 32px 40px;text-align:center}
+.hero h1{font-size:28px;font-weight:600;letter-spacing:-.5px;margin-bottom:8px}
+.hero p{font-size:14px;opacity:.65;margin-bottom:24px}
+.hero-meta{display:flex;gap:16px;justify-content:center;font-size:13px;opacity:.5}
+.legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:20px 32px;background:#fff;border-bottom:1px solid #e5e7eb}
+.search-wrap{padding:16px 32px;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.search-wrap input{width:100%;max-width:480px;display:block;margin:0 auto 12px;padding:10px 16px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#f9fafb;color:#111}
+.search-wrap input:focus{outline:none;border-color:#6366f1;background:#fff}
+.filter-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.fchip{padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid #e5e7eb;background:#fff;color:#555;transition:all .15s}
+.fchip.active,.fchip:hover{background:#1a1a2e;color:#fff;border-color:#1a1a2e}
+.main{max-width:920px;margin:0 auto;padding:28px 24px 56px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:14px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px 20px}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.card-name{font-size:14px;font-weight:500;color:#111}
+.card-name a{color:inherit;text-decoration:none}
+.card-name a:hover{text-decoration:underline}
+.card-badges{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.mode-badge{padding:3px 10px;border-radius:20px;font-size:10px;border:1px solid #e5e7eb;background:#f3f4f6;color:#666;white-space:nowrap}
+.card-desc{font-size:13px;color:#555;line-height:1.65}
+.card-note{margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;font-size:12px;color:#888;line-height:1.6;white-space:pre-wrap}
+.card-note-label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#bbb;margin-bottom:4px;font-weight:500}
+.empty{text-align:center;padding:48px;color:#aaa;font-size:14px;display:none}
+.footer{text-align:center;padding:24px;font-size:12px;color:#aaa;border-top:1px solid #e5e7eb;background:#fff;margin-top:16px}
+.count-bar{text-align:right;font-size:12px;color:#aaa;margin-bottom:12px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.hero{padding:32px 20px}.main{padding:16px 16px 40px}.search-wrap{padding:12px 16px}}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🗂 Stack Gainext</h1>
+  <p>Base de conhecimento — ferramentas, plataformas e tecnologias</p>
+  <div class="hero-meta">
+    <span id="total-count">21 ferramentas</span>
+    <span>·</span>
+    <span>Taubaté, SP</span>
+    <span>·</span>
+    <span>Jun 2026</span>
+  </div>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<div class="search-wrap">
+  <input type="text" id="q" placeholder="🔍  Buscar ferramenta ou descrição..." oninput="filter()">
+  <div class="filter-row" id="filters"></div>
+</div>
+
+<div class="main">
+  <div class="count-bar" id="count-bar">21 de 21 itens</div>
+  <div class="grid" id="cards"></div>
+  <div class="empty" id="empty">Nenhuma ferramenta encontrada para essa busca.</div>
+</div>
+
+<div class="footer">Stack Gainext &nbsp;·&nbsp; Gerado em junho de 2026 &nbsp;·&nbsp; Taubaté, SP</div>
+
+<script>
+const CATS={
+  ia:{label:"IA / Chat",bg:"#EEEDFE",color:"#3C3489"},
+  dev:{label:"Desenvolvimento",bg:"#E6F1FB",color:"#0C447C"},
+  auto:{label:"Automação",bg:"#E1F5EE",color:"#085041"},
+  cloud:{label:"Cloud / Infra",bg:"#FAECE7",color:"#712B13"},
+  db:{label:"Banco de dados",bg:"#EAF3DE",color:"#27500A"},
+  low:{label:"No-code / Low-code",bg:"#FBEAF0",color:"#72243E"},
+  api:{label:"APIs",bg:"#FAEEDA",color:"#633806"},
+  comms:{label:"Comunicação",bg:"#F1EFE8",color:"#444441"}
+};
+const MODES={cloud:"☁️ Cloud",local:"💻 Local",ambos:"🔗 Ambos"};
+
+const DATA=[
+  {id:1,name:"Claude Chat + Claude Desktop",cat:"ia",mode:"ambos",url:"https://claude.ai",desc:"Interface principal da Anthropic para conversar com o Claude. Acesso via navegador (claude.ai) ou pelo app instalável no computador (Claude Desktop), que adiciona suporte a MCP — permitindo conectar o Claude a ferramentas externas, arquivos locais e outros serviços diretamente do seu sistema.",notes:""},
+  {id:2,name:"Claude Cowork",cat:"ia",mode:"cloud",url:"https://claude.ai",desc:"Modo de trabalho colaborativo dentro do Claude, voltado para tarefas que envolvem uso de ferramentas, skills e execução de código. Permite criar skills personalizadas (como a vanio:prompt-builder) e trabalhar com arquivos, computador e integrações em um ambiente mais estruturado e produtivo.",notes:""},
+  {id:3,name:"Claude Code",cat:"dev",mode:"local",url:"https://claude.ai/code",desc:"Ferramenta de linha de comando (CLI) da Anthropic para programação com IA. Roda no terminal do seu computador e age como um agente de código autônomo — lê, edita e executa arquivos do projeto, roda comandos e resolve problemas de desenvolvimento de forma independente.",notes:""},
+  {id:4,name:"OpenAI Chat (ChatGPT)",cat:"ia",mode:"cloud",url:"https://chat.openai.com",desc:"Interface de chat da OpenAI, acessível pelo navegador. Serve para conversas, geração de textos, análise de documentos e resolução de problemas com os modelos GPT. Alternativa ao Claude para comparações, segunda opinião ou quando alguma tarefa específica performa melhor nessa plataforma.",notes:""},
+  {id:5,name:"OpenAI Codex",cat:"dev",mode:"cloud",url:"https://platform.openai.com",desc:"Modelo de IA da OpenAI especializado em geração e compreensão de código. Está na base do GitHub Copilot e é acessado via API. Serve para autocompletar código, traduzir linguagens de programação e gerar scripts a partir de descrições em linguagem natural.",notes:""},
+  {id:6,name:"API Claude (Anthropic)",cat:"api",mode:"cloud",url:"https://console.anthropic.com",desc:"Interface de programação que permite integrar os modelos Claude diretamente em aplicações, automações e sistemas próprios. É o que conecta o N8N, Streamlit e outros projetos Gainext ao cérebro do Claude — enviando mensagens e recebendo respostas programaticamente via requisições HTTP.",notes:""},
+  {id:7,name:"API OpenAI",cat:"api",mode:"cloud",url:"https://platform.openai.com",desc:"Interface de programação da OpenAI para uso dos modelos GPT, Whisper, DALL-E e outros. Funciona de forma similar à API Claude — você envia uma requisição com texto ou áudio/imagem e recebe a resposta do modelo. Útil quando o projeto exige um modelo específico da OpenAI.",notes:""},
+  {id:8,name:"N8N",cat:"auto",mode:"ambos",url:"https://n8n.io",desc:"Plataforma de automação de fluxos de trabalho open-source, similar ao Make e Zapier, mas com maior flexibilidade técnica. Permite criar automações visuais conectando APIs, bancos de dados, IA e serviços como WhatsApp via Twilio, Google Sheets e Supabase. Pode rodar na nuvem ou auto-hospedado no VPS.",notes:""},
+  {id:9,name:"Make.com",cat:"auto",mode:"cloud",url:"https://make.com",desc:"Plataforma de automação visual no-code que conecta centenas de aplicativos e serviços em fluxos (cenários). Usado no projeto Pet Manager para integrar Twilio + Google Sheets. Mais visual que o N8N e mais poderoso que o Zapier, com plano gratuito generoso e interface de arrastar e soltar.",notes:""},
+  {id:10,name:"Supabase",cat:"db",mode:"ambos",url:"https://supabase.com",desc:"Plataforma open-source que funciona como alternativa ao Firebase. Fornece banco de dados PostgreSQL, autenticação, APIs automáticas, armazenamento de arquivos e funções em tempo real em um único painel. Usado como backend principal dos projetos Gainext — pode rodar via cloud ou localmente com Docker.",notes:""},
+  {id:11,name:"SQLite",cat:"db",mode:"local",url:"https://sqlite.org",desc:"Banco de dados leve que funciona como um arquivo único no computador, sem necessidade de servidor. Ideal para projetos pequenos, protótipos e aplicações locais que precisam persistir dados sem a complexidade de um banco externo. Muito usado com Python e integrado nativamente em várias linguagens.",notes:""},
+  {id:12,name:"Google Sheets",cat:"db",mode:"cloud",url:"https://sheets.google.com",desc:"Planilha online do Google usada como banco de dados leve em automações e projetos simples. No ecossistema Gainext serve como backend do Pet Manager e de sistemas de logging — permite leitura e escrita via API, é de fácil visualização pelo cliente e dispensa infraestrutura adicional.",notes:""},
+  {id:13,name:"Hostinger VPS",cat:"cloud",mode:"cloud",url:"https://hostinger.com/br/servidor-vps",desc:"Servidor Virtual Privado contratado na Hostinger — funciona como um computador dedicado na nuvem, ligado 24h por dia. Serve para hospedar automações como N8N, sistemas e aplicações que precisam rodar de forma ininterrupta. Gerenciado via SSH ou pelo painel da Hostinger, sem precisar do computador pessoal ligado.",notes:""},
+  {id:14,name:"Google Cloud",cat:"cloud",mode:"cloud",url:"https://cloud.google.com",desc:"Plataforma de serviços em nuvem do Google — inclui servidores, bancos de dados, funções serverless, armazenamento e muito mais. Ainda não utilizado ativamente nos projetos Gainext, mas relevante como referência para escalar aplicações ou usar serviços específicos como Google Cloud Run ou Firebase.",notes:""},
+  {id:15,name:"Twilio",cat:"comms",mode:"cloud",url:"https://twilio.com",desc:"Plataforma de comunicação via API que permite enviar e receber mensagens WhatsApp, SMS, voz e e-mail programaticamente. Usado nos projetos Gainext como canal de entrada do WhatsApp — recebe mensagens dos clientes, passa para o N8N ou Make.com processar com IA e devolve a resposta pelo mesmo canal.",notes:""},
+  {id:16,name:"Python",cat:"dev",mode:"local",url:"https://python.org",desc:"Linguagem de programação principal usada nos projetos Gainext. Versátil e com vasto ecossistema de bibliotecas — serve para construir scrapers como o busca_diom_mg.py, backends, scripts de automação, integrações com APIs e aplicações com Streamlit. Precisa estar instalado no computador para rodar localmente.",notes:""},
+  {id:17,name:"VSCode",cat:"dev",mode:"local",url:"https://code.visualstudio.com",desc:"Editor de código principal — leve, gratuito e altamente extensível. Serve para escrever e editar código Python, JavaScript, SQL e outros. Integra com GitHub, terminal, extensões de IA como Copilot e tem debug embutido. Precisa estar instalado no computador e é o ambiente central de desenvolvimento.",notes:""},
+  {id:18,name:"GitHub",cat:"dev",mode:"ambos",url:"https://github.com",desc:"Plataforma de versionamento de código baseada em Git. Serve para salvar, versionar e colaborar em projetos de código — funciona como backup inteligente que guarda todo o histórico de alterações. Usado também para publicar páginas estáticas via GitHub Pages e integrar com outros serviços via GitHub Actions.",notes:""},
+  {id:19,name:"Streamlit",cat:"dev",mode:"ambos",url:"https://streamlit.io",desc:"Framework Python para criar aplicações web e dashboards de forma rápida, sem precisar de HTML ou CSS. Transforma scripts Python em interfaces visuais interativas. Usado nos projetos Gainext para criar frontends de automações, painéis de diagnóstico como o da Andrade Móveis e visualizações de dados.",notes:""},
+  {id:20,name:"Lovable",cat:"low",mode:"cloud",url:"https://lovable.dev",desc:"Plataforma no-code/vibe-code que gera aplicações web completas a partir de descrições em linguagem natural. Cria frontends funcionais com React, integra com Supabase como backend e permite publicar o projeto em produção com poucos cliques — ideal para protótipos rápidos sem escrever código manualmente.",notes:""},
+  {id:21,name:"OpenClaw",cat:"ia",mode:"local",url:"https://openclaw.ai",desc:"Assistente de IA pessoal open-source que roda nos seus próprios dispositivos. Conecta-se a canais de mensagens que você já usa como WhatsApp, Telegram e Slack, e executa tarefas autonomamente: roda comandos, lê e escreve arquivos, acessa APIs e controla o navegador. Funciona com Claude, GPT e modelos locais via Skills instaláveis.",notes:""}
+];
+
+let activeFilter="all";
+
+function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+function buildLegend(){
+  const cats=[...new Set(DATA.map(d=>d.cat))];
+  document.getElementById("legend").innerHTML=Object.entries(CATS)
+    .filter(([k])=>cats.includes(k))
+    .map(([k,v])=>{
+      const count=DATA.filter(d=>d.cat===k).length;
+      return`<span style="background:${v.bg};color:${v.color};padding:4px 14px;border-radius:20px;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:6px">${v.label} <span style="opacity:.6">${count}</span></span>`;
+    }).join("");
+}
+
+function buildFilters(){
+  const cats=[...new Set(DATA.map(d=>d.cat))];
+  const chips=[{k:"all",label:"Todas"},...Object.entries(CATS).filter(([k])=>cats.includes(k)).map(([k,v])=>({k,label:v.label}))];
+  document.getElementById("filters").innerHTML=chips.map(c=>`<button class="fchip${c.k==="all"?" active":""}" onclick="setF('${c.k}','${esc(c.label)}')">${c.label}</button>`).join("");
+}
+
+function setF(f,label){
+  activeFilter=f;
+  document.querySelectorAll(".fchip").forEach(b=>b.classList.toggle("active",b.textContent.trim()===label||(f==="all"&&b.textContent==="Todas")));
+  filter();
+}
+
+function filter(){
+  const q=document.getElementById("q").value.toLowerCase();
+  const items=DATA.filter(d=>{
+    const mq=!q||d.name.toLowerCase().includes(q)||d.desc.toLowerCase().includes(q);
+    const mf=activeFilter==="all"||d.cat===activeFilter;
+    return mq&&mf;
+  });
+  document.getElementById("count-bar").textContent=`${items.length} de ${DATA.length} itens`;
+  const empty=document.getElementById("empty");
+  const grid=document.getElementById("cards");
+  if(!items.length){grid.innerHTML="";empty.style.display="block";return;}
+  empty.style.display="none";
+  grid.innerHTML=items.map(d=>{
+    const cat=CATS[d.cat]||{label:d.cat,bg:"#F1EFE8",color:"#444441"};
+    const mode=MODES[d.mode]||"";
+    const noteHtml=d.notes?`<div class="card-note"><div class="card-note-label">Anotações</div>${esc(d.notes)}</div>`:"";
+    const nameHtml=d.url?`<a href="${d.url}" target="_blank">${esc(d.name)} ↗</a>`:esc(d.name);
+    return`<div class="card">
+      <div class="card-top">
+        <div class="card-name">${nameHtml}</div>
+        <div class="card-badges">
+          <span class="badge" style="background:${cat.bg};color:${cat.color}">${cat.label}</span>
+          ${mode?`<span class="mode-badge">${mode}</span>`:""}
+        </div>
+      </div>
+      <div class="card-desc">${esc(d.desc)}</div>
+      ${noteHtml}
+    </div>`;
+  }).join("");
+}
+
+buildLegend();
+buildFilters();
+filter();
+</script>
+</body>
+</html>
